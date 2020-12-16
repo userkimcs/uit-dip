@@ -5,7 +5,6 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-
 from conf import INPUT_SHAPE, NORMALIZE_STD, INPUT_SIZE, ROTATE_ANGLE, NORMALIZE_MEAN
 import torchvision
 import os
@@ -121,5 +120,5 @@ class EarlyStopping:
             self.counter = 0
 
     def save_checkpoint(self, val_loss, model):
-        torch.save(model.state_dict(), self.path)
+        torch.save(model, self.path)
         self.val_loss_min = val_loss

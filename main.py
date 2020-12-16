@@ -3,8 +3,8 @@ import torchvision
 
 from helpers import image_show, DatasetLoader
 import logging
-
-from model import ModelTrainer
+from glob import glob
+from model import ModelTrainer, ModelEval, ImageVisualize
 import sys
 
 
@@ -14,32 +14,48 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", help="Data path", required=True)
+    parser.add_argument("--model_path", required=False)
     parser.add_argument("--batch_size", help="Training batch size", required=False, default=32, type=int)
     parser.add_argument("--workers", required=False, default=4, type=int)
     parser.add_argument("--epochs", required=False, default=5, type=int)
     parser.add_argument("--sample", action='store_true', default=False)
+    parser.add_argument("--train", action='store_true', default=False)
+    parser.add_argument("--eval", action='store_true', default=False)
+    parser.add_argument("--demo", action='store_true', default=False)
 
     args = parser.parse_args()
-
-    dataloader = DatasetLoader(data_path=args.data_path, batch_size=args.batch_size, workers=args.workers).load()
-
     logger.info("Hello")
-    # sample
-    if args.sample:
-        inputs, classes = dataloader.next('train')
-        out = torchvision.utils.make_grid(inputs, nrow=8)
-        image_show(out)
 
-    list_models = [
-        'resnet18',
-        'resnet34',
-        'resnet50',
-        'resnet101',
-        'resnet152',
-    ]
+    if args.eval or args.train:
+        dataloader = DatasetLoader(data_path=args.data_path, batch_size=args.batch_size, workers=args.workers).load()
 
-    for model in list_models:
-        trainer = ModelTrainer(dataset=dataloader, model_name=model, num_epochs=args.epochs, es={})
-        trainer.fit()
+        # sample
+        if args.sample:
+            inputs, classes = dataloader.next('train')
+            out = torchvision.utils.make_grid(inputs, nrow=8)
+            image_show(out)
 
-    logger.info("Done")
+        if args.train:
+            list_models = [
+                'resnet18',
+                'densenet121',
+                'mnasnet0_75',
+                'vgg11',
+            ]
+
+            logger.info("Training mode")
+            for model in list_models:
+                trainer = ModelTrainer(dataset=dataloader, model_name=model, num_epochs=args.epochs, es={})
+                trainer.run()
+
+        if args.eval:
+            for model_path in glob("models/*.pt"):
+                logger.info("Eval model " + model_path)
+                evaluator = ModelEval(dataset=dataloader, model_path=model_path)
+                evaluator.run()
+
+    if args.demo:
+        vs = ImageVisualize(model_path=args.model_path)
+        vs.run(args.data_path)
+
+    logger.info("Exit 1")
